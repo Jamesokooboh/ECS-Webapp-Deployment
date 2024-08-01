@@ -1,0 +1,39 @@
+name: Build and deploy to ECS 
+on: 
+  push:
+    branches: 
+      - main 
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest ### we are using a managed runner which is linux u ubuntu 
+    permissions:
+        contents: read   
+        packages: write   
+    steps: 
+
+     ### clone repository into the runner     
+      - name: clone repo 
+        uses: actions/checkout@v3 
+    ### install java and maven on the runner     
+      - name: setup java and maven 
+        uses: actions/setup-java@v3
+        with:
+            distribution: 'adopt'
+            java-version:  '11' 
+    ### create artifact with maven        
+      - name: package-artifact  
+        run: mvn package ### validate , compile the code , unit test , package code into an artifact    
+       
+      - name: code analysis with sonaqube 
+        run: mvn sonar:sonar -Dsonar.projectKey=xashy-webapp-project -Dsonar.host.url=${{secrets.SONAR_HOST_URL}} -Dsonar.token=${{secrets.SONAR_LOGIN_TOKEN}}
+    
+    ## publish to github packages
+
+      - name: publish to github packages
+        run: mvn --batch-mode deploy
+        env:
+            GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+            
+        
+
+        
