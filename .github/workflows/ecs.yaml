@@ -74,7 +74,9 @@ jobs:
             task-definition: ${{steps.task-def.outputs.task-definition}}
             service: xashy-webapp-service
             cluster: xashy-webapp-cluster
-            wait-for-service-stability: true     
+            wait-for-service-stability: true   
+            
+            ##### done ###
 
                 
                 
