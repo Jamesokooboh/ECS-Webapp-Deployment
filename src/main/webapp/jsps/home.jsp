@@ -9,8 +9,8 @@
 </head>
 </head>
 <body>
-<h1 align="center">Welcome to Xashy Web Application Project.</h1>
-<h1 align="center">We are developing an application for Xashy. We are using ECS as the platform of the application.
+<h1 align="center">Welcome to Xashy</h1>
+<h1 align="center">We are developing an application for Xashy. We are using ECS for orchestration and later would use k8S.
 we offer AWS and DevOps training and our next class starts in August 2nd </h1>
 <hr>
 <br>

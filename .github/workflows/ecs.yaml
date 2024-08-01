@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-latest ### we are using a managed runner which is linux u ubuntu 
     permissions:
         contents: read   
-        packages: write   
+        packages: write  
+        id-token: write 
     steps: 
 
      ### clone repository into the runner     
@@ -33,6 +34,50 @@ jobs:
         run: mvn --batch-mode deploy
         env:
             GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+    ### have github actions authenticate to aws through OIDC. 
+    
+      - name: auth to aws 
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+            role-to-assume: arn:aws:iam::975050274549:role/github-xashy-webapp-ecs-deployment-role
+            aws-region: us-east-1
+
+    ### github actions uses docker to log in to ecr. 
+      - name: login to amazon ecr 
+        id: login-ecr 
+        uses: aws-actions/amazon-ecr-login@v2
+
+     ## use docker to containerise artifact       
+      - name: build,tag, and push
+        id: build-image
+        env:
+            REGISTRY: ${{steps.login-ecr.outputs.registry}}
+            REPOSITORY: xashy-webapp
+            IMAGE_TAG: ${{github.sha}}                
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          echo "image=$REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: create new revision of the task definition.
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: xashy-webapp-taskdefinition
+          container-name: xashy-webapp-container
+          image: ${{steps.build-image.outputs.image}}
+      
+      - name: Update service with new revision.
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+            task-definition: ${{steps.task-def.outputs.task-definition}}
+            service: xashy-webapp-service
+            cluster: xashy-webapp-cluster
+            wait-for-service-stability: true     
+
+                
+                
             
         
 
