@@ -76,7 +76,7 @@ jobs:
             cluster: xashy-webapp-cluster
             wait-for-service-stability: true   
             
-            ##### done ##############
+            ##### done ###########################
 
                 
                 
