@@ -1,57 +1,59 @@
 {
-    "taskDefinitionArn": "arn:aws:ecs:us-east-1:975050274549:task-definition/xashy-webapp-taskdefinition:1",
-    "containerDefinitions": [
+  "taskDefinitionArn": "arn:aws:ecs:us-east-1:624150768155:task-definition/Test-TD:1",
+  "containerDefinitions": [
+    {
+      "name": "test-container",
+      "image": "jamesokooboh/test:latest",
+      "cpu": 0,
+      "portMappings": [
         {
-            "name": "xashy-webapp-container",
-            "image": "jakuma998/xashy-webapp:v3",
-            "cpu": 0,
-            "portMappings": [
-                {
-                    "name": "xashy-webapp-container-8080-tcp",
-                    "containerPort": 8080,
-                    "hostPort": 8080,
-                    "protocol": "tcp",
-                    "appProtocol": "http"
-                }
-            ],
-            "essential": true,
-            "environment": [],
-            "environmentFiles": [],
-            "mountPoints": [],
-            "volumesFrom": [],
-            "ulimits": [],
-            "systemControls": []
+          "name": "test-container-8080-tcp",
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp",
+          "appProtocol": "http"
         }
-    ],
-    "family": "xashy-webapp-taskdefinition",
-    "executionRoleArn": "arn:aws:iam::975050274549:role/ecsTaskExecutionRole",
-    "networkMode": "awsvpc",
-    "revision": 1,
-    "volumes": [],
-    "status": "ACTIVE",
-    "requiresAttributes": [
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
-        },
-        {
-            "name": "ecs.capability.task-eni"
-        }
-    ],
-    "placementConstraints": [],
-    "compatibilities": [
-        "EC2",
-        "FARGATE"
-    ],
-    "requiresCompatibilities": [
-        "FARGATE"
-    ],
-    "cpu": "1024",
-    "memory": "3072",
-    "runtimePlatform": {
-        "cpuArchitecture": "X86_64",
-        "operatingSystemFamily": "LINUX"
+      ],
+      "essential": true,
+      "environment": [],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "systemControls": []
+    }
+  ],
+  "family": "Test-TD",
+  "executionRoleArn": "arn:aws:iam::624150768155:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "revision": 1,
+  "volumes": [],
+  "status": "ACTIVE",
+  "requiresAttributes": [
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
     },
-    "registeredAt": "2024-07-31T23:36:11.156Z",
-    "registeredBy": "arn:aws:iam::975050274549:root",
-    "tags": []
+    {
+      "name": "ecs.capability.task-eni"
+    }
+  ],
+  "placementConstraints": [],
+  "compatibilities": [
+    "EC2",
+    "FARGATE",
+    "MANAGED_INSTANCES"
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "2048",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "registeredAt": "2026-02-11T09:37:34.857Z",
+  "registeredBy": "arn:aws:iam::624150768155:user/ADMIN",
+  "enableFaultInjection": false,
+  "tags": []
 }
