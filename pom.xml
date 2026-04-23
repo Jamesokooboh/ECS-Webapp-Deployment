@@ -18,13 +18,13 @@
 	</organization>
 
 	<properties>
-		<jdk.version>1.8</jdk.version>
-		<spring.version>5.1.2.RELEASE</spring.version>
+		<jdk.version>17</jdk.version>
+		<spring.version>5.3.33</spring.version>
 		<junit.version>4.11</junit.version>
-		<log4j.version>1.2.17</log4j.version>
-		<sonar.host.url>http:///54.211.119.82:9000/</sonar.host.url>
+		<log4j2.version>2.20.0</log4j2.version>
+		<sonar.host.url>http://3.94.103.166:9000/</sonar.host.url>
 		<sonar.login>admin</sonar.login>
-		<sonar.password>Password1234$</sonar.password> 
+		<sonar.password>Adminpassword1#</sonar.password> 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
@@ -41,7 +41,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
+			<version>${junit.version}</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -55,11 +55,22 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>1.9.5</version>
+			<version>3.12.4</version>
 			<scope>test</scope>
 		</dependency>
 
 		<!-- compile dependencies -->
+
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>${log4j2.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>${log4j2.version}</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -95,7 +106,7 @@
 	    <repository>
 	      <id>github</id>
 	      <name></name>
-	      <url>https://github.com/Jamesokooboh/ECS-Deployment.git</url>
+	      <url>https://maven.pkg.github.com/Jamesokooboh/ECS-Webapp-Deployment</url>
 	    </repository>
 	    
 	    
@@ -108,7 +119,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.3</version>
+				<version>3.13.0</version>
 				<configuration>
 					<source>${jdk.version}</source>
 					<target>${jdk.version}</target>
@@ -118,7 +129,7 @@
 			<plugin>
 				<groupId>org.eclipse.jetty</groupId>
 				<artifactId>jetty-maven-plugin</artifactId>
-				<version>9.2.11.v20150529</version>
+				<version>9.4.53.v20231009</version>
 				<configuration>
 					<scanIntervalSeconds>10</scanIntervalSeconds>
 					<webApp>
