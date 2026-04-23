@@ -1,87 +1,129 @@
-name: Build and deploy to ECS 
-on: 
+name: Build, Analyze, Deploy to ECS
+
+on:
   push:
-    branches: 
-      - main 
+    branches:
+      - main
+
 jobs:
   build-deploy:
-    runs-on: ubuntu-latest ### we are using a managed runner which is linux ubuntu 
-    permissions:
-        contents: read   
-        packages: write  
-        id-token: write 
-    steps: 
+    name: Build, SonarQube Analysis, Deploy
+    runs-on: ubuntu-latest
 
-     ### clone repository into the runner     
-      - name: clone repo 
-        uses: actions/checkout@v4 
-    ### install java and maven on the runner     
-      - name: setup java and maven 
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      # =========================
+      # 1. Checkout Code
+      # =========================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # =========================
+      # 2. Setup Java
+      # =========================
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-            distribution: 'adopt'
-            java-version:  '17' 
-    ### create artifact with maven        
-      - name: package-artifact  
-        run: mvn package ### validate, compile the code, unit test, package code into an artifact    
-       
-      - name: code analysis with sonaqube 
-        run: mvn sonar:sonar -Dsonar.projectKey=webapp-project -Dsonar.host.url=${{secrets.SONAR_HOST_URL}} -Dsonar.token=${{secrets.SONAR_LOGIN_TOKEN}}
-             
-    
-    ## publish to github packages
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: publish to github packages
+      # =========================
+      # 3. Cache Maven Dependencies
+      # =========================
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2
+
+      # =========================
+      # 4. Cache SonarQube
+      # =========================
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: |
+            ${{ runner.os }}-sonar
+
+      # =========================
+      # 5. Build + Test + SonarQube Analysis
+      # =========================
+      - name: Build and analyze with SonarQube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          mvn -B clean verify \
+            org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=webapp-project \
+            -Dsonar.projectName=webapp-project
+
+      # =========================
+      # 6. Deploy to GitHub Packages (optional)
+      # =========================
+      - name: Deploy to GitHub Packages
         run: mvn --batch-mode deploy
         env:
-            GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    ### have github actions authenticate to aws through OIDC. 
-    
-      - name: auth to aws 
+      # =========================
+      # 7. Configure AWS Credentials (OIDC)
+      # =========================
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
-            role-to-assume: arn:aws:iam::624150768155:role/ECS-Webapp-Deployment-Role
-            aws-region: us-east-1
+          role-to-assume: arn:aws:iam::624150768155:role/ECS-Webapp-Deployment-Role
+          aws-region: us-east-1
 
-    ### github actions uses docker to log in to ecr. 
-      - name: login to amazon ecr 
-        id: login-ecr 
+      # =========================
+      # 8. Login to Amazon ECR
+      # =========================
+      - name: Login to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-     ## use docker to containerise artifact       
-      - name: build,tag, and push
+      # =========================
+      # 9. Build, Tag, Push Docker Image
+      # =========================
+      - name: Build, tag, and push image
         id: build-image
         env:
-            REGISTRY: ${{steps.login-ecr.outputs.registry}}
-            REPOSITORY: ecs-ecr
-            IMAGE_TAG: ${{github.sha}}                
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ecs-ecr
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
           echo "image=$REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: create new revision of the task definition.
+      # =========================
+      # 10. Render ECS Task Definition
+      # =========================
+      - name: Render ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1.6.2
         with:
           task-definition: task-definition.json
           container-name: webapp-container
-          image: ${{steps.build-image.outputs.image}}
-      
-      - name: Update service with new revision.
+          image: ${{ steps.build-image.outputs.image }}
+
+      # =========================
+      # 11. Deploy to ECS
+      # =========================
+      - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-            task-definition: ${{steps.task-def.outputs.task-definition}}
-            service: webapp-TD-service-y4u2wb8h
-            cluster: webapp-cluster996
-            wait-for-service-stability: true   
-            
-            ##### done ###########################
-
-                
-                
-            
-        
-
-        
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: webapp-TD-service-y4u2wb8h
+          cluster: webapp-cluster996
+          wait-for-service-stability: true
