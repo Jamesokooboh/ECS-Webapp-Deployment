@@ -65,8 +65,8 @@ jobs:
         run: |
           mvn -B clean verify \
             org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-            -Dsonar.projectKey=webapp-project \
-            -Dsonar.projectName=webapp-project
+            -Dsonar.projectKey=webapp-project-1 \
+            -Dsonar.projectName=webapp-project-1
 
       # =========================
       # 6. Deploy to GitHub Packages (optional)
