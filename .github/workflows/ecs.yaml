@@ -5,7 +5,7 @@ on:
       - main 
 jobs:
   build-deploy:
-    runs-on: ubuntu-latest ### we are using a managed runner which is linux u ubuntu 
+    runs-on: ubuntu-latest ### we are using a managed runner which is linux ubuntu 
     permissions:
         contents: read   
         packages: write  
@@ -14,19 +14,20 @@ jobs:
 
      ### clone repository into the runner     
       - name: clone repo 
-        uses: actions/checkout@v3 
+        uses: actions/checkout@v4 
     ### install java and maven on the runner     
       - name: setup java and maven 
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
             distribution: 'adopt'
             java-version:  '17' 
     ### create artifact with maven        
       - name: package-artifact  
-        run: mvn package ### validate , compile the code , unit test , package code into an artifact    
+        run: mvn package ### validate, compile the code, unit test, package code into an artifact    
        
       - name: code analysis with sonaqube 
-        run: mvn sonar:sonar -Dsonar.projectKey=xashy-webapp-project -Dsonar.host.url=${{secrets.SONAR_HOST_URL}} -Dsonar.token=${{secrets.SONAR_LOGIN_TOKEN}}
+        run: mvn sonar:sonar-Dsonar.projectKey=webapp-project -Dsonar.host.url=${{secrets.SONAR_HOST_URL}} -Dsonar.token=${{secrets.SONAR_LOGIN_TOKEN}}
+             
     
     ## publish to github packages
 
@@ -40,7 +41,7 @@ jobs:
       - name: auth to aws 
         uses: aws-actions/configure-aws-credentials@v3
         with:
-            role-to-assume: arn:aws:iam::975050274549:role/github-xashy-webapp-ecs-deployment-role
+            role-to-assume: arn:aws:iam::624150768155:role/ECS-Webapp-Deployment-Role
             aws-region: us-east-1
 
     ### github actions uses docker to log in to ecr. 
@@ -53,7 +54,7 @@ jobs:
         id: build-image
         env:
             REGISTRY: ${{steps.login-ecr.outputs.registry}}
-            REPOSITORY: xashy-webapp
+            REPOSITORY: ecs-ecr
             IMAGE_TAG: ${{github.sha}}                
         run: |
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
@@ -62,18 +63,18 @@ jobs:
 
       - name: create new revision of the task definition.
         id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        uses: aws-actions/amazon-ecs-render-task-definition@v1.6.2
         with:
           task-definition: task-definition.json
-          container-name: xashy-webapp-container
+          container-name: webapp-container
           image: ${{steps.build-image.outputs.image}}
       
       - name: Update service with new revision.
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
             task-definition: ${{steps.task-def.outputs.task-definition}}
-            service: xashy-webapp-service
-            cluster: xashy-webapp-cluster
+            service: webapp-TD-service-y4u2wb8h
+            cluster: webapp-cluster996
             wait-for-service-stability: true   
             
             ##### done ###########################
