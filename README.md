@@ -1,228 +1,126 @@
-ECS Web Application Deployment
+# ECS Web Application Deployment
 
-Production-style deployment of a containerized web application on AWS using Amazon ECS, Docker, Application Load Balancer, and networking within a custom VPC.
+Production-style deployment of a Java web application to AWS using **Amazon ECS on Fargate**, Docker, an Application Load Balancer, and a custom VPC — built to simulate how a real production deployment works end to end.
 
+## Overview
 
----
+The application is a Java 17 / Spring (Core, Web, WebMVC) web app, built as a WAR with Maven and served via an embedded Jetty container. It's containerized with Docker and deployed to Amazon ECS **Fargate** — no EC2 instances to manage. The surrounding infrastructure includes a custom VPC with public and private subnets, security groups, and an Application Load Balancer.
 
-Overview
+## Architecture
 
-This project demonstrates how to deploy a web application to AWS using a modern cloud-native architecture.
+```
+   Client
+     |
+     v
+[Application Load Balancer]  (public subnet)
+     |
+     v
+[ECS Fargate Task: webapp-container]   (port 8080)
+     |                                  1 vCPU / 3072 MB
+     v
+[CloudWatch Logs]  /ecs/webapp-TD
+```
 
-The application is containerized with Docker and deployed to Amazon ECS. The infrastructure includes a custom VPC, public and private subnets, security groups, an Application Load Balancer, and supporting networking configuration.
+**AWS services used:** ECS (Fargate), Application Load Balancer, VPC (public/private subnets, Internet Gateway, route tables), Security Groups, IAM (ECS task execution role), CloudWatch Logs
 
-The goal of this project is to simulate how a real production deployment would work in AWS.
+## Tech stack
 
+- **Java 17**, Spring 5.3.x (spring-core, spring-web, spring-webmvc, spring-context)
+- Packaged as a **WAR** via Maven (`maven-compiler-plugin`, `jetty-maven-plugin` for local dev)
+- **Docker** for containerization
+- **Amazon ECS (Fargate)** for orchestration
+- Maven artifacts published to **GitHub Packages** via CI
 
----
+## Project structure
 
-Architecture
-
-Main AWS services used:
-
-Amazon ECS
-
-Docker
-
-Amazon EC2 / ECS Cluster
-
-Application Load Balancer
-
-Amazon VPC
-
-Public and Private Subnets
-
-Internet Gateway
-
-Route Tables
-
-Security Groups
-
-IAM Roles
-
-CloudWatch Logs
-
-GitHub
-
-
-
----
-
-Features
-
-Containerized web application using Docker
-
-ECS service for managing application containers
-
-Application Load Balancer for traffic routing
-
-VPC with multiple subnets
-
-Security groups for controlled access
-
-IAM roles for ECS permissions
-
-Logging with CloudWatch
-
-Scalable architecture
-
-Production-style deployment approach
-
-
-
----
-
-Project Structure
-
+```
 .
-├── app/
+├── src/main/                # Java application source
+├── .github/workflows/       # CI/CD pipeline
 ├── Dockerfile
-├── ecs-task-definition.json
-├── load-balancer-config/
-├── networking/
-├── screenshots/
-├── README.md
-└── .github/
+├── pom.xml                  # Maven build config (Java 17, Spring 5.3.x)
+├── settings.xml             # Maven server auth for GitHub Packages (CI only)
+├── task-definition.json     # ECS Fargate task definition
+└── README.md
+```
 
+## Local development
 
----
+```bash
+# Run with the Jetty Maven plugin (context path: /maven-web-application)
+mvn jetty:run
+```
 
-Deployment Workflow
+## Docker
 
-1. Create a custom VPC
-
-
-2. Create public and private subnets
-
-
-3. Configure route tables and internet gateway
-
-
-4. Create security groups
-
-
-5. Build Docker image
-
-
-6. Push image to container registry
-
-
-7. Create ECS cluster
-
-
-8. Create task definition
-
-
-9. Create ECS service
-
-
-10. Configure Application Load Balancer
-
-
-11. Test deployment in browser
-
-
-
-
----
-
-Docker Build
-
+```bash
 docker build -t webapp .
+docker run -p 8080:8080 webapp
+```
 
-Run locally:
+## ECS task definition
 
-docker run -p 3000:3000 webapp
+The committed `task-definition.json` defines:
 
----
+| Setting | Value |
+|---|---|
+| Family | `webapp-TD` |
+| Container | `webapp-container` |
+| Port | `8080` |
+| Launch type | `FARGATE` |
+| CPU / Memory | `1024` (1 vCPU) / `3072` MB (3 GB) |
+| Network mode | `awsvpc` |
+| Logging | `awslogs` → `/ecs/webapp-TD` (us-east-1) |
 
-Challenges Faced
+## Deployment workflow
 
-Some of the main challenges during this project included:
+1. Create a custom VPC with public and private subnets
+2. Configure route tables and an Internet Gateway
+3. Create security groups
+4. Build the Docker image and push it to a container registry
+5. Create the ECS cluster
+6. Register the task definition
+7. Create the ECS service (Fargate launch type)
+8. Configure the Application Load Balancer and target group
+9. Verify the deployment in the browser
 
-Troubleshooting ECS task failures
+## Security notes
 
-Fixing security group and networking issues
+A few things worth tightening before treating this as a template for real workloads:
 
-Configuring the Application Load Balancer correctly
+- **`task-definition.json` has a real AWS account ID hardcoded** into the IAM role ARNs. For a public repo, parameterize this (e.g. via CI variable substitution) rather than committing the literal account ID.
+- The container image reference (`jamesokooboh/test:latest`) looks like a placeholder from testing — worth pointing at a proper ECR repository and a real, versioned tag before calling this production-style end to end.
+- `settings.xml` pulls Maven Packages credentials from `GITHUB_TOKEN` and `GPG_PASSPHRASE` environment variables — correct pattern, just make sure those are only ever injected via GitHub Actions secrets, never hardcoded.
 
-Understanding ECS task definitions and IAM permissions
+## Challenges faced
 
-Debugging why services were not reachable publicly
+- Troubleshooting ECS task failures
+- Fixing security group and networking issues
+- Configuring the Application Load Balancer correctly
+- Understanding ECS task definitions and IAM permissions
+- Debugging why services weren't reachable publicly
+- Managing Docker image versions
 
-Managing Docker image versions
+## Lessons learned
 
+- How ECS services communicate within a VPC
+- How load balancers route traffic to containers
+- How security groups affect application accessibility
+- How to debug ECS deployment failures
+- How to structure a production-style AWS deployment
+- The importance of automation and infrastructure planning
 
-These issues helped improve understanding of AWS networking, container orchestration, and deployment troubleshooting.
+## Future improvements
 
----
+- [ ] Add Terraform for Infrastructure as Code
+- [ ] Add GitHub Actions for full CI/CD (build → push → deploy)
+- [ ] Add Auto Scaling policies
+- [ ] Add CloudWatch monitoring dashboards
+- [ ] Add a blue/green deployment strategy
+- [ ] Move the container image to ECR with proper tagging
 
-Lessons Learned
+## Author
 
-Through this project, I learned:
-
-How ECS services communicate within a VPC
-
-How load balancers route traffic to containers
-
-How security groups affect application accessibility
-
-How to debug ECS deployment failures
-
-How to structure a production-style AWS deployment
-
-The importance of automation and infrastructure planning
-
-
-
----
-
-Future Improvements
-
-Possible future enhancements for this project:
-
-Add Terraform for Infrastructure as Code
-
-Add GitHub Actions for CI/CD
-
-Add Auto Scaling policies
-
-Add monitoring dashboards with CloudWatch
-
-Add ECS Fargate deployment 
-
-Add blue/green deployment strategy
-
-
-
----
-
-
-
-
-
-ECS Cluster
-
-ECS Service
-
-Running Tasks
-
-Load Balancer
-
-VPC Configuration
-
-CloudWatch Logs
-
-Application running in browser
-
-
-
-
-
----
-
-Author
-
-James Okooboh
-
-GitHub: https://github.com/Jamesokooboh Project Repository: https://github.com/Jamesokooboh/ECS-Webapp-Deployment 
+**James Okooboh**
+GitHub: [Jamesokooboh](https://github.com/Jamesokooboh)
+Project repository: [ECS-Webapp-Deployment](https://github.com/Jamesokooboh/ECS-Webapp-Deployment)
